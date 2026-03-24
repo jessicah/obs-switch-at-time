@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kittyhawk Countdown</title>
+    <style type="text/css">
+		body {
+			margin: 0;
+			padding: 0;
+		}
+
+		img {
+			aspect-ratio: 16 / 9;
+			width: 100%;
+			height: 100%;
+		}
+
+		remaining-time {
+			font-weight: bold;
+			font-size: 5em;
+			position: absolute;
+			font-family: "Rubik";
+			font-variant-numeric: tabular-nums;
+			right: 1em;
+			bottom: 1em;
+			color: orange;
+			-webkit-text-stroke-color: darkred;
+			-webkit-text-stroke-width: 2px;
+		}
+	</style>
+	<script src="temporal.min.js" preload></script>
+	<script type="text/javascript">
+		class RemainingTime extends HTMLElement {
+			constructor() {
+				super();
+				this.updateTime = this.updateTime.bind(this);
+
+				const params = new URLSearchParams(window.location.search);
+				const targetTime = params.get("t");
+
+				this.targetInstant = Temporal.PlainTime.from(targetTime);
+			}
+
+			connectedCallback() {
+				this.updateTime();
+				this.intervalId = setInterval(this.updateTime, 100);
+			}
+
+			disconnectedCallback() {
+				clearInterval(this.intervalId);
+			}
+
+			updateTime() {
+				const duration = Temporal.Now.plainTimeISO().until(this.targetInstant);
+
+				if (duration.sign <= 0) {
+					this.intervalId && clearInterval(this.intervalId);
+
+					if (this.hasHours) {
+						this.textContent = "00:00:00";
+					} else {
+						this.textContent = "00:00";
+					}
+
+					try
+					{
+						if (this.changedScene !== true)
+						{
+							window.obsstudio.setCurrentScene("Lightning and Thunder");
+						}
+
+						this.changedScene = true;
+					}
+					catch (e)
+					{
+						console.warn("Not running in OBS, skipping scene switch.");
+					}
+
+					return;
+				}
+
+				const hours = String(duration.hours).padStart(2, "0");
+				const minutes = String(duration.minutes).padStart(2, "0");
+				const seconds = String(duration.seconds).padStart(2, "0");
+
+				if (hours != "00" || this.hasHours === true)
+				{
+					this.hasHours = true;
+				}
+
+				if (this.hasHours) {
+					this.textContent = `${hours}:${minutes}:${seconds}`;
+				} else {
+					this.textContent = `${minutes}:${seconds}`;
+				}
+			}
+		}
+
+		customElements.define("remaining-time", RemainingTime);
+	</script>
+</head>
+
+<body>
+    <img src="background.png" />
+
+	<remaining-time></remaining-time>
+</body>
+
+</html>
